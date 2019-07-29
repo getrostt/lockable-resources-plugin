@@ -310,19 +310,26 @@ public class LockStepTest extends LockStepTestBase {
                 + "	lock('resource1') {\n"
                 + "		semaphore 'wait-b'\n"
                 + "	}\n"
-                + "}\n"));
+                + "}\n"
+                + "semaphore 'wait-end'\n"
+        ));
 
     WorkflowRun b1 = p.scheduleBuild2(0).waitForStart();
     SemaphoreStep.waitForStart("wait-b/1", b1);
     // both messages are in the log because branch b acquired the lock and branch a is waiting to
     // lock
-    j.waitForMessage("[b] Lock acquired on [resource1]", b1);
-    j.waitForMessage("[a] [resource1] is locked, waiting...", b1);
+    j.waitForMessage("Lock acquired on [resource1]", b1);
+    j.waitForMessage("[resource1] is locked, waiting...", b1);
     isPaused(b1, 2, 1);
 
     SemaphoreStep.success("wait-b/1", null);
 
-    j.waitForMessage("[a] Lock acquired on [resource1]", b1);
+    j.waitForMessage("Lock acquired on [resource1]", b1);
+
+    // ensure we wait until the end
+    SemaphoreStep.waitForStart("wait-end/1", b1);
+    SemaphoreStep.success("wait-end/1", null);
+
     isPaused(b1, 2, 0);
   }
 
